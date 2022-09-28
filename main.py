@@ -3,14 +3,21 @@ from random import randint
 import numpy as np
 from tqdm import trange
 import cv2
-WIDTH=720
+WIDTH=720 
 HEIGHT=720
 FPS=60
-TIMESTRETCH=0.05
-LENGTH=10
+TIMESTRETCH=0.005
+LENGTH=30
 FRAMES=FPS*LENGTH
-SUBSTEPS=2
-OBJECTNUMBER=2
+SUBSTEPS=8
+OBJECTNUMBER=5
+print("Size: "+str(WIDTH)+"x"+str(HEIGHT)+" wxh")
+print("FPS: "+str(FPS))
+print("Length: "+str(LENGTH)+"s")
+print("Frames: "+str(FRAMES))
+print("Physics Iterations: "+str(FRAMES*SUBSTEPS))
+print("Objects: "+str(OBJECTNUMBER))
+CollisionChecks=0
 class Vec2:
     def __init__(self,x,y) -> None:
         self.x=x
@@ -56,9 +63,19 @@ class Vec2:
         else:
             return Vec2(self.x*other,self.y*other)
     def tt(self):
+        '''returns self as a tuple'''
         return (self.x,self.y)
     def __str__(self):
         return "Vec2("+str(self.x)+","+str(self.y)+")"
+    def length(self):
+        return (self.x**2+self.y**2)**0.5
+    def __len__(self)->float:
+        return self.length()
+    def normalize(self):
+        l=self.length()
+        self.x=self.x/l
+        self.y=self.y/l
+        return self
 constraintPosition=Vec2(WIDTH/2,HEIGHT/2)
 constraintRadius=200
 constraintMap=np.zeros((WIDTH,HEIGHT,3),np.uint8)
@@ -88,15 +105,16 @@ class Object:
 
     
 def length(v:Vec2):
-    return (v.x**2+v.y**2)**0.5
+    return v.length()
 class Solver:
-    gravity=Vec2(0,1000.0)
+    gravity=Vec2(0,5000.0)
     # objects:Object
     def update(self,dt,objects):
         self.applyGravity(objects)
         for n in range(SUBSTEPS):
             self.updatePositions(dt/SUBSTEPS,objects)
-        self.applyConstraint(objects)
+            self.applyConstraint(objects)
+            self.applyCollisions(objects)
     def updatePositions(self,dt,objects):
         for n in range(len(objects)):
             objects[n].updatePosition(dt)
@@ -108,11 +126,28 @@ class Solver:
         for n in range(len(objects)):
             obj=objects[n]
             toObj=obj.position_current-constraintPosition
-            distance=length(toObj)
+            distance=toObj.length()
             if distance>(constraintRadius-obj.radius):
-                n=Vec2(toObj.x/distance,toObj.y/distance)
-                obj.position_current=constraintPosition+n*(distance-obj.radius*0.5)
-
+                n=toObj.normalize()
+                obj.position_current=(constraintPosition+n*(distance-obj.radius))
+    def applyCollisions(self,objects):
+        for n in range(len(objects)):
+            obj=objects[n]
+            for m in range(len(objects)):
+                if n==m:
+                    continue
+                otherObj=objects[m]
+                toObj=obj.position_current-otherObj.position_current
+                distance=toObj.length()
+                if distance<(otherObj.radius+obj.radius):
+                    if distance==0:
+                        norm=Vec2(1, 0)
+                    else:
+                        norm=toObj.normalize()
+                    
+                    obj.position_current+=(norm*(distance-obj.radius))
+                global CollisionChecks
+                CollisionChecks+=1
 def render(objects):
     pixels=np.copy(constraintMap)
             
@@ -148,3 +183,4 @@ def main():
     video.release()
 if __name__=="__main__":
     main()
+    print(CollisionChecks)
