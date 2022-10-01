@@ -110,8 +110,8 @@ class Solver:
     gravity=Vec2(0,5000.0)
     # objects:Object
     def update(self,dt,objects):
-        self.applyGravity(objects)
         for n in range(SUBSTEPS):
+            self.applyGravity(objects)
             self.updatePositions(dt/SUBSTEPS,objects)
             self.applyConstraint(objects)
             self.applyCollisions(objects)
@@ -139,7 +139,7 @@ class Solver:
         for n in range(len(objects)):
             obj=objects[n]
             for m in range(len(objects)):
-                if n==m:
+                if n<=m:
                     continue
                 
                 otherObj=objects[m]

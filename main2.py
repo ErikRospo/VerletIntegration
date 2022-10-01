@@ -91,8 +91,8 @@ class Object:
     color:tuple
     def updatePosition(self,dt):
         velocity=self.position_current-self.position_old
-        # fd=0.025*velocity*velocity*self.radius
-
+        fd=0.025*velocity*velocity*self.radius*2
+        velocity-=fd
         #save current position
         self.position_old=self.position_current
         #perform verlet integration
@@ -110,8 +110,8 @@ class Solver:
     gravity=Vec2(0,5000.0)
     # objects:Object
     def update(self,dt,objects):
-        self.applyGravity(objects)
         for n in range(SUBSTEPS):
+            self.applyGravity(objects)
             self.updatePositions(dt/SUBSTEPS,objects)
             self.applyConstraint(objects)
             self.applyCollisions(objects)
@@ -139,7 +139,7 @@ class Solver:
         for n in range(len(objects)):
             obj=objects[n]
             for m in range(len(objects)):
-                if n==m:
+                if n<=m:
                     continue
                 
                 otherObj=objects[m]
